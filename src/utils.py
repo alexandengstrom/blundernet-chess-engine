@@ -65,19 +65,32 @@ def generate_full_uci_move_dict():
 
     return move_dict
 
-    
-        
-            
-def board_to_matrix(board: Board):
-    matrix = np.zeros((8, 8, 12))
+
+def board_to_matrix(board: chess.Board):
+    matrix = np.zeros((8, 8, 17), dtype=np.float32)
+
     piece_map = board.piece_map()
     for square, piece in piece_map.items():
         row = square // 8
         col = square % 8
         piece_type = piece.piece_type - 1
-        color = 0 if piece.color else 6
-        matrix[row, col, piece_type + color] = 1
+        color_offset = 0 if piece.color == chess.WHITE else 6
+        matrix[row, col, piece_type + color_offset] = 1
+
+    if board.turn == chess.WHITE:
+        matrix[:, :, 12] = 1
+
+    if board.has_kingside_castling_rights(chess.WHITE):
+        matrix[:, :, 13] = 1
+    if board.has_queenside_castling_rights(chess.WHITE):
+        matrix[:, :, 14] = 1
+    if board.has_kingside_castling_rights(chess.BLACK):
+        matrix[:, :, 15] = 1
+    if board.has_queenside_castling_rights(chess.BLACK):
+        matrix[:, :, 16] = 1
+
     return matrix
+
 
 
 def preprocess(games):
