@@ -35,6 +35,15 @@ class LichessBot:
         except Exception as e:
             print("Failed to get bot ID:", e)
             raise
+        
+    def get_our_rating(self) -> int:
+        try:
+            resp = requests.get("https://lichess.org/api/account", headers=self.headers, timeout=10)
+            resp.raise_for_status()
+            return resp.json()["perfs"]["bullet"]["rating"]
+        except Exception as e:
+            print("Failed to get bot rating:", e)
+            raise
 
     def stream_events(self) -> Generator[Dict, None, None]:
         url = "https://lichess.org/api/stream/event"
@@ -90,6 +99,8 @@ class LichessBot:
     def play_game_wrapper(self, game_id: str) -> None:
         try:
             self.play_game(game_id)
+        except:
+            Logger.error(f"Game {game_id} crashed")
         finally:
             with self.active_games_lock:
                 self.active_games.discard(game_id)
@@ -108,7 +119,6 @@ class LichessBot:
             elif event_type == "chatLine":
                 continue
             elif event_type == "gameFinish":
-                self.handle_game_finish(event, is_white, game_id)
                 break
 
     def handle_game_full(self, event: Dict, game_id: str, board: chess.Board) -> bool:
@@ -125,7 +135,7 @@ class LichessBot:
         )
 
         if (is_white and board.turn == chess.WHITE) or (not is_white and board.turn == chess.BLACK):
-            self.respond(game_id, board)
+            self.respond(game_id, board, is_white)
 
         return is_white
 
@@ -168,11 +178,24 @@ class LichessBot:
 
 
     def challenge_other_bot(self) -> None:
-        opponents = self.find_opponent()
-
+        opponents = self.find_opponents()
+        
         if not opponents:
             Logger.warning("No opponents found.")
             return
+        
+        our_rating = None
+        
+        for bot in opponents:
+            if bot["id"].lower() == self.bot_id.lower():
+                our_rating = bot.get("perfs", {}).get("bullet", {}).get("rating")
+                break
+            
+        if our_rating is None:
+            Logger.warning("Could not determine own bullet rating, will send another request")
+            our_rating = self.get_our_rating()
+
+
 
         opponents = [
             bot for bot in opponents if bot["id"].lower() != self.bot_id.lower()
@@ -180,10 +203,21 @@ class LichessBot:
         if not opponents:
             Logger.warning("No valid opponents (excluding self).")
             return
+        
+        opponents_with_rating = [
+        bot for bot in opponents if "perfs" in bot and "bullet" in bot["perfs"]
+    ]
+        opponents_with_rating.sort(
+            key=lambda bot: abs(bot["perfs"]["bullet"]["rating"] - our_rating)
+        )
 
-        opponent = random.choice(opponents)
+        num_to_keep = max(1, len(opponents_with_rating) // 10)
+        closest_opponents = opponents_with_rating[:num_to_keep]
+
+        opponent = random.choice(closest_opponents)
         opponent_id = opponent["id"]
-        Logger.info(f"Challenging bot: {opponent_id}")
+        username = opponent["username"]
+        Logger.info(f"Challenging bot: {username}")
         timelimit = random.choice([30, 45, 60])
 
         url = f"https://lichess.org/api/challenge/{opponent_id}"
@@ -198,7 +232,7 @@ class LichessBot:
 
         response = requests.post(url, headers=headers, data=data, timeout=10)
         if response.status_code == 200:
-            Logger.info(f"Challenge sent to {opponent_id}")
+            Logger.info(f"Challenge sent to {username} with rating {opponent["perfs"]["bullet"]["rating"]}")
         else:
             Logger.warning(
                 f"Failed to challenge {opponent_id}: {response.status_code} - {response.text}"
@@ -206,7 +240,7 @@ class LichessBot:
 
     def periodic_challenger(self) -> None:
         while True:
-            time.sleep(60)
+            time.sleep(300)
             with self.active_games_lock:
                 if len(self.active_games) < self.max_games:
                     Logger.info("Attempting to challenge an opponent.")
@@ -214,7 +248,7 @@ class LichessBot:
                 else:
                     Logger.debug("Active games ongoing. Skipping challenge.")
 
-    def find_opponent(self, max_results: int = 200) -> Optional[List[Dict]]:
+    def find_opponents(self, max_results: int = 200) -> Optional[List[Dict]]:
         url = f"https://lichess.org/api/bot/online?nb={max_results}"
         response = requests.get(url, headers=self.headers, stream=True, timeout=10)
 

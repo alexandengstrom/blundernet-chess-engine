@@ -39,3 +39,6 @@ If you dont want to train your own model. You can use the **blundernet**-model. 
 The model's input is a tensor representing the state of the chessboard, with 17 channels encoding both the pieces on the board and additional information like castling rights. If you'd like to use a different input format, you can implement your own `board_to_matrix` method.
 
 The output is a vector with a length corresponding to the total number of possible moves in uci-format, including both legal and illegal moves.
+
+## Lichess
+When running the Lichess-bridge. We will start to listens for incoming requests but also challenge other bot accounts. By default we will allow five games to be played at the same time. When challenging other bots, we will try to find matches that are close to us in ranking. When receiving challenges we will accept everything.
