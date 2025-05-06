@@ -1,12 +1,8 @@
 import datetime
 
+
 class Logger:
-    LEVELS = {
-        "DEBUG": 10,
-        "INFO": 20,
-        "WARNING": 30,
-        "ERROR": 40
-    }
+    LEVELS = {"DEBUG": 10, "INFO": 20, "WARNING": 30, "ERROR": 40}
 
     COLORS = {
         "DEBUG": "\033[94m",

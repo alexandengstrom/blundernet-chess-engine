@@ -1,16 +1,18 @@
 import pygame
-import game.config as config
+
+from game import config
+
 from .state import GameState, StartState
 
 
 class Game:
     def __init__(self) -> None:
-        pygame.init()
+        pygame.init() # pylint: disable=no-member
         self.window = pygame.display.set_mode((config.WIDTH, config.HEIGHT))
         pygame.display.set_caption("Chess Engine")
         self.clock = pygame.time.Clock()
         self.running = True
-        self.state: GameState = StartState(self) 
+        self.state: GameState = StartState(self)
 
     def change_state(self, new_state: GameState) -> None:
         self.state.on_exit()
@@ -24,8 +26,4 @@ class Game:
             self.state.update()
             self.state.render(self.window)
             self.clock.tick(60)
-        pygame.quit()
-
-        
-        
-
+        pygame.quit() # pylint: disable=no-member
