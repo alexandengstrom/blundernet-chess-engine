@@ -11,7 +11,7 @@ class AudioPlayer:
     def load_sounds(self):
         sounds = {}
         base_path = os.path.join(
-            os.path.dirname(__file__), "..", "..", "assets", "sounds"
+            os.path.dirname(__file__), "assets", "sounds"
         )
 
         sound_files = {"knock": "knock.mp3", "take": "take.mp3"}
