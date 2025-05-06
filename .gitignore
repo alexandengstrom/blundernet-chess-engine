@@ -1,6 +1,7 @@
 training_data
 stockfish
 .lichess_token
+.token
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

@@ -1,5 +1,7 @@
 import os
+
 import pygame
+
 
 class AudioPlayer:
     def __init__(self):
@@ -8,12 +10,11 @@ class AudioPlayer:
 
     def load_sounds(self):
         sounds = {}
-        base_path = os.path.join(os.path.dirname(__file__), "..", "..", "assets", "sounds")
+        base_path = os.path.join(
+            os.path.dirname(__file__), "..", "..", "assets", "sounds"
+        )
 
-        sound_files = {
-            "knock": "knock.mp3",
-            "take": "take.mp3"
-        }
+        sound_files = {"knock": "knock.mp3", "take": "take.mp3"}
 
         for name, filename in sound_files.items():
             path = os.path.join(base_path, filename)
