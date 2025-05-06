@@ -1,7 +1,7 @@
 from game import Game
 from engine import Engine
-from evaluator import Evaluator
-from model import Model
+#from engine import Evaluator
+from engine import Model
 
 
 if __name__ == "__main__":

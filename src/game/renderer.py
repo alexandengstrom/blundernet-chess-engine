@@ -1,7 +1,7 @@
 import pygame
 import chess
 import os
-from config import TILE_SIZE, BOARD_SIZE, LIGHT, DARK
+from .config import TILE_SIZE, BOARD_SIZE, LIGHT, DARK
 
 
 class Renderer:

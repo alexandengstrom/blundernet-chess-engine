@@ -1,7 +1,7 @@
 import argparse
-from model import Model
-from engine import Engine
-from infinite_dataset import InfiniteDataset
+from engine.model import Model
+from engine.engine import Engine
+from engine.infinite_dataset import InfiniteDataset
 from lichess_bot import LichessBot
 
 if __name__ == "__main__":
@@ -29,9 +29,6 @@ if __name__ == "__main__":
     lichess_parser.add_argument(
         "--model", type=str, default="blundernet", help="Model to run in the engine"
     )
-    lichess_parser.add_argument(
-        "--challenge", action="store_true", help="Start a game by challenging a random bot"
-    )
 
 
     args = parser.parse_args()
@@ -50,14 +47,11 @@ if __name__ == "__main__":
     elif args.command == "lichess":
         model = args.model
         
-        engine = Engine("blundernet6.keras")
+        engine = Engine(Model.load(args.model))
         token = None
         
         with open(".lichess_token", "r") as data:
             token = data.read().strip()
             
         bot = LichessBot(engine, token)
-        if args.challenge:
-            bot.start_game_against_random_bot(["sargon-1ply", "Humaia", "LouisChess48-6K"])
-        else:
-            bot.run()
+        bot.run()

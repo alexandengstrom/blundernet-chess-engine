@@ -1,5 +1,5 @@
 import pygame
-import config
+import game.config as config
 from .state import GameState, StartState
 
 

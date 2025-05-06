@@ -8,7 +8,7 @@ import time
 
 
 from engine import Engine
-from logger import Logger
+from utils import Logger
 
 class LichessBot:
     def __init__(self, engine, token, max_games=5):
