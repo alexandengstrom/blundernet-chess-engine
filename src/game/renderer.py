@@ -14,7 +14,7 @@ class Renderer:
     def load_sprites(self):
         sprites = {}
         base_path = os.path.join(
-            os.path.dirname(__file__), "..", "..", "assets", "sprites"
+            os.path.dirname(__file__), "assets", "sprites"
         )
         for piece in ["p", "n", "b", "r", "q", "k"]:
             for color in ["white", "black"]:
