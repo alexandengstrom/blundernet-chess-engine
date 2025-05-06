@@ -41,13 +41,13 @@ class Model:
         p = layers.Conv2D(2, kernel_size=1, activation='relu')(x)
         p = layers.BatchNormalization()(p)
         p = layers.Flatten()(p)
-        p = layers.Dense(256, activation='relu')(p)
+        p = layers.Dense(1024, activation="gelu")(p)
         p = layers.Dense(output_size)(p)
 
         model = models.Model(inputs=inputs, outputs=p)
 
         model.compile(
-            optimizer=tf.keras.optimizers.Adam(learning_rate=0.001),
+            optimizer=tf.keras.optimizers.Adam(learning_rate=0.0003),
             loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
             metrics=['accuracy']
         )

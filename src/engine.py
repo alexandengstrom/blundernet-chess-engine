@@ -21,7 +21,7 @@ class Engine:
         prediction = self.model.model.predict(board_matrix, verbose=0)
         return prediction
 
-    def make_move(self, board: Board, verbose=True):
+    def make_move(self, board: Board, verbose=False):
         # The idea is to make the one move the engine suggests if it has a clear winner
         # If many moves have probabilities close to each other we randomize between those, but at most between the 5 top choices.
         if board.turn == chess.WHITE and board.fullmove_number == 1:
@@ -46,6 +46,7 @@ class Engine:
         move_probabilities.sort(key=lambda x: x[1], reverse=True)
 
         top_move, top_prob = move_probabilities[0]
+            
         #print(f"Probability for top move: {top_prob}")
         
 
@@ -57,6 +58,17 @@ class Engine:
         selected_moves = threshold_moves[:5]
 
         chosen_move = random.choice([move for move, _ in selected_moves])
+        
+        if verbose:
+            print("Probabilities for most likely moves:")
+            for move, prob in move_probabilities[:5]:
+                if move == chosen_move:
+                    color = "\033[92m"
+                else:
+                    color = "\033[93m"
+                reset = "\033[0m"
+                print(f"\t{color}{move}: {prob:.3f}{reset}")
+        
         return chosen_move
     
 

@@ -1,14 +1,6 @@
 import pygame
-import chess
-from board import Board
-from renderer import Renderer
-from audio_player import AudioPlayer
 import config
-import utils
-from engine import Engine
-import time
-from typing import Optional, Tuple, List
-from .state import GameState, PlayState, StartState
+from .state import GameState, StartState
 
 
 class Game:

@@ -5,8 +5,8 @@ import time
 
 from .game_state import GameState
 from .promotion_state import PromotionState
-from renderer import Renderer
-from audio_player import AudioPlayer
+from ..renderer import Renderer
+from ..audio_player import AudioPlayer
 from board import Board
 from engine import Engine
 import config

@@ -19,4 +19,5 @@ To evaluate how well the models performs, four distinct test sets have been crea
 
 | Generation         | Real Positions | Random Positions | Endgame Positions | Checkmate Positions |
 |--------------------|----------------|------------------|-------------------|---------------------|
-| Blundernet Gen 1   | 32.41%         | 26.60%           | 27.53%            | 19.56%              |
+| Gen 1              | 32.41%         | 26.60%           | 27.53%            | 19.56%              |
+| Gen 2              | 33.79%         | 28.73%           | 30.18%            | 24.15%              |
