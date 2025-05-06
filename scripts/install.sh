@@ -16,9 +16,6 @@ else
     echo "requirements.txt not found. Skipping pip install."
 fi
 
-touch .token_file
-echo REPLACE_WITH_YOUR_LICHESS_TOKEN >> .token_file
-
 deactivate
 
 echo "Downloading default model"
