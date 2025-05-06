@@ -22,6 +22,7 @@ class PromotionState(GameState):
                     self.play_state.board.push(self.move)
                     self.play_state.selected_square = None
                     self.play_state.selected_piece = None
+                    self.engines_turn = True
                     self.play_state.available_moves = []
                     self.game.change_state(self.play_state)
                     break

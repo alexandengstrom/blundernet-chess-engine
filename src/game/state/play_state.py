@@ -1,4 +1,3 @@
-import utils
 import chess
 import pygame
 import time
@@ -7,9 +6,8 @@ from .game_state import GameState
 from .promotion_state import PromotionState
 from ..renderer import Renderer
 from ..audio_player import AudioPlayer
-from board import Board
+from utils import Board
 from engine import Engine
-import config
 
 ENGINE_PLAY = True
 
@@ -35,14 +33,14 @@ class PlayState(GameState):
 
         elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             pos = pygame.mouse.get_pos()
-            self.selected_square = utils.get_square_under_mouse(pos)
+            self.selected_square = self.get_square_under_mouse(pos)
             square_index = chess.square(*self.selected_square)
             self.selected_piece = self.board.board.piece_at(square_index)
             self.available_moves = self.board.legal_moves_from(square_index)
 
         elif event.type == pygame.MOUSEBUTTONUP and event.button == 1:
             pos = pygame.mouse.get_pos()
-            self.released_square = utils.get_square_under_mouse(pos)
+            self.released_square = self.get_square_under_mouse(pos)
             self._handle_move()
 
     def _handle_move(self):
@@ -88,7 +86,7 @@ class PlayState(GameState):
         self.renderer.draw_board(self.board)
         if self.available_moves:
             self.renderer.draw_legal_moves(self.available_moves)
-            hover_square = chess.square(*utils.get_square_under_mouse(pygame.mouse.get_pos()))
+            hover_square = chess.square(*self.get_square_under_mouse(pygame.mouse.get_pos()))
             if hover_square in {move.to_square for move in self.available_moves}:
                 self.renderer.draw_current_move(hover_square)
 
@@ -96,3 +94,4 @@ class PlayState(GameState):
         self.renderer.draw_pieces(self.board, self.selected_square)
         self.renderer.draw_dragged_piece(self.selected_piece, pygame.mouse.get_pos())
         pygame.display.flip()
+

@@ -1,12 +1,12 @@
 import pygame
 import os
 
-import config
+import game.config as config
 from .play_state import PlayState
 from .game_state import GameState
 
 class StartState(GameState):
-    def __init__(self, game: "Game") -> None:
+    def __init__(self, game) -> None:
         self.game = game
         self.font = pygame.font.SysFont("Arial", 36)
         self.models = list(filter(lambda filename: filename.endswith(".keras"), os.listdir("models")))
