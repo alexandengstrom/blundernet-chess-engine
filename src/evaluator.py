@@ -36,7 +36,7 @@ class Evaluator:
                 white, black = engine2, engine1
 
             while not board.is_game_over():
-                move = white.make_move(board) if board.turn == chess.WHITE else black.make_move(board)
+                move = white.make_move(board, verbose=False) if board.turn == chess.WHITE else black.make_move(board)
                 board.push(move)
 
             result = board.result()
