@@ -12,7 +12,7 @@ ifeq ($(strip $(NAME)),)
 endif
 	bash scripts/train_model.sh $(NAME)
 
-lichess:
+bot:
 	@if [ -z "$(MODEL)" ]; then \
 		echo "No model name provided. Using 'blundernet' as the default."; \
 		MODEL="blundernet"; \
