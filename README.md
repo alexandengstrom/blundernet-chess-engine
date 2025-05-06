@@ -33,3 +33,9 @@ Interact with the project using `make`. These are the commands available:
 - `make lichess MODEL=your_model_name`: This starts the **Lichess**-bridge which lets your engine play online.
 - `make check`: Mostly for development, but runs linting and typechecking for the project.
 
+## Model
+If you dont want to train your own model. You can use the **blundernet**-model. This is the model represented by the Model-class included in the repo.
+
+The model's input is a tensor representing the state of the chessboard, with 17 channels encoding both the pieces on the board and additional information like castling rights. If you'd like to use a different input format, you can implement your own `board_to_matrix` method.
+
+The output is a vector with a length corresponding to the total number of possible moves in uci-format, including both legal and illegal moves.
