@@ -1,5 +1,7 @@
+# pylint: disable=too-many-instance-attributes
 import matplotlib.pyplot as plt
 import numpy as np
+
 
 class LivePlot:
     def __init__(self):
@@ -7,18 +9,24 @@ class LivePlot:
         self.losses = []
 
         plt.ion()
-        self.fig, (self.ax_acc, self.ax_loss) = plt.subplots(2, 1, sharex=True, figsize=(8, 6))
+        self.fig, (self.ax_acc, self.ax_loss) = plt.subplots(
+            2, 1, sharex=True, figsize=(8, 6)
+        )
         self.fig.canvas.manager.set_window_title("Live Model Accuracy and Loss")
 
-        self.line_acc, = self.ax_acc.plot([], [], marker='o', color='green', label="Accuracy")
-        self.trend_acc, = self.ax_acc.plot([], [], 'g--', label="Trend")
+        (self.line_acc,) = self.ax_acc.plot(
+            [], [], marker="o", color="green", label="Accuracy"
+        )
+        (self.trend_acc,) = self.ax_acc.plot([], [], "g--", label="Trend")
         self.ax_acc.set_ylabel("Accuracy")
         self.ax_acc.set_title("Model Accuracy Progress")
         self.ax_acc.grid(True)
         self.ax_acc.legend()
 
-        self.line_loss, = self.ax_loss.plot([], [], marker='o', color='red', label="Loss")
-        self.trend_loss, = self.ax_loss.plot([], [], 'r--', label="Trend")
+        (self.line_loss,) = self.ax_loss.plot(
+            [], [], marker="o", color="red", label="Loss"
+        )
+        (self.trend_loss,) = self.ax_loss.plot([], [], "r--", label="Trend")
         self.ax_loss.set_xlabel("Game chunks")
         self.ax_loss.set_ylabel("Loss")
         self.ax_loss.set_title("Model Loss Progress")

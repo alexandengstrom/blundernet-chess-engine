@@ -1,0 +1,11 @@
+[MESSAGES CONTROL]
+
+disable=
+    missing-module-docstring,
+    line-too-long,
+    too-few-public-methods,
+    dangerous-default-value,
+    protected-access,
+    no-name-in-module,
+    import-error,
+    no-member
