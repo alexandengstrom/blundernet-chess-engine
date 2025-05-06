@@ -21,4 +21,9 @@ echo REPLACE_WITH_YOUR_LICHESS_TOKEN >> .token_file
 
 deactivate
 
+echo "Downloading default model"
+
+mkdir -p models
+curl -L -o models/blundernet.keras https://github.com/alexandengstrom/blundernet-chess-engine/releases/download/v1.0.0/blundernet.keras
+
 echo "Setup complete."
