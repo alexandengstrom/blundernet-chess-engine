@@ -143,19 +143,28 @@ class LichessBot:
             board.push_uci(move)
 
         if (is_white and board.turn == chess.WHITE) or (not is_white and board.turn == chess.BLACK):
-            self.respond(game_id, board)
+            self.respond(game_id, board, is_white)
 
 
-    def handle_game_finish(self, event: Dict, is_white: Optional[bool], game_id: str) -> None:
-        self.send_chat(game_id, "Good game! Thanks for playing. 😊")
-        winner = event.get("winner", None)
+    def handle_game_finish(self, is_white: Optional[bool], game_id: str, board: chess.Board) -> None:
+        winner = None
+        
+        result = board.result()
+        
+        if result == "1-0":
+            winner = "white"
+        elif result == "0-1":
+            winner = "black"
 
         if winner is None:
             Logger.info(f"[Game {game_id}] over: Draw.")
+            self.send_chat(game_id, "Thanks for playing!")
         elif (winner == "white" and is_white) or (winner == "black" and not is_white):
             Logger.info(f"[Game {game_id}] over: We won!")
+            self.send_chat(game_id, "Thanks for playing! Finally a win for me!")
         else:
             Logger.info(f"[Game {game_id}] over: We lost.")
+            self.send_chat(game_id, "Thanks for playing! I had no change...")
 
 
     def challenge_other_bot(self) -> None:
@@ -224,9 +233,9 @@ class LichessBot:
 
         return opponents
 
-    def respond(self, game_id: str, board: chess.Board) -> None:
+    def respond(self, game_id: str, board: chess.Board, is_white: bool) -> None:
         if board.is_game_over():
-            Logger.info(f"Game {game_id} is over. Result: {board.result()}")
+            self.handle_game_finish(is_white, game_id, board)
             return
 
         move = self.engine.make_move(board)
