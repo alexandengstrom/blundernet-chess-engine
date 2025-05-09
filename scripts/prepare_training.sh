@@ -1,30 +1,28 @@
 #!/bin/bash
 
-STOCKFISH_URL="https://github.com/official-stockfish/Stockfish/releases/latest/download/stockfish-ubuntu-x86-64-avx2.tar"
-STOCKFISH_TAR="stockfish.tar"
-STOCKFISH_EXE="stockfish"
-ZIP_URL="https://database.nikonoel.fr/lichess_elite_2020-06.zip"
-ZIP_FILE="lichess_elite_2020-06.zip"
-TRAINING_DIR="training_data/unprocessed"
+ZIP_URLS=(
+    "https://database.nikonoel.fr/lichess_elite_2020-06.zip"
+    "https://database.nikonoel.fr/lichess_elite_2020-07.zip"
+    "https://database.nikonoel.fr/lichess_elite_2020-08.zip"
+    "https://database.nikonoel.fr/lichess_elite_2020-09.zip"
+    "https://database.nikonoel.fr/lichess_elite_2020-10.zip"
+    "https://database.nikonoel.fr/lichess_elite_2020-11.zip"
+    "https://database.nikonoel.fr/lichess_elite_2020-12.zip"
+)
 
-echo "Downloading Stockfish..."
-curl -L "$STOCKFISH_URL" -o "$STOCKFISH_TAR"
+TRAINING_DIR="training_data"
 
-echo "Extracting..."
-tar -xf "$STOCKFISH_TAR"
-rm -rf "$STOCKFISH_TAR"
-
-echo "Stockfish is ready."
-
-mkdir -p training_data/processed
 mkdir -p $TRAINING_DIR
 
-echo "Downloading training data..."
-curl -L "$ZIP_URL" -o "$ZIP_FILE"
+for ZIP_URL in "${ZIP_URLS[@]}"; do
+    ZIP_FILE=$(basename "$ZIP_URL")
+    echo "Downloading $ZIP_FILE..."
+    curl -L "$ZIP_URL" -o "$ZIP_FILE"
 
-echo "Extracting training data..."
-unzip -o "$ZIP_FILE" -d "$TRAINING_DIR"
+    echo "Extracting $ZIP_FILE..."
+    unzip -o "$ZIP_FILE" -d "$TRAINING_DIR"
 
-rm -f "$ZIP_FILE"
+    rm -f "$ZIP_FILE"
+done
 
 echo "Training data is ready."

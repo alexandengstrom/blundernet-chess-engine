@@ -1,9 +1,6 @@
 import argparse
 
-from engine.engine import Engine
-from engine.infinite_dataset import InfiniteDataset
-from engine.model import Model
-from game import Game
+from engine import Engine, Model, InfiniteDataset, Evaluator
 from lichess_bot import LichessBot
 
 if __name__ == "__main__":
@@ -25,33 +22,23 @@ if __name__ == "__main__":
         help="Generate new training data while training",
     )
 
-    generate_parser = subparsers.add_parser("generate", help="Generate datasets")
-    generate_parser.add_argument(
-        "--batch_size", type=int, default=500, help="Number of samples per batch"
-    )
-    generate_parser.add_argument(
-        "--num_files", type=int, default=100, help="Number of dataset files to generate"
-    )
-
     lichess_parser = subparsers.add_parser("lichess", help="Host Lichess Bot")
     lichess_parser.add_argument(
         "--model", type=str, default="blundernet", help="Model to run in the engine"
     )
 
-    game_parser = subparsers.add_parser("game", help="Generate datasets")
+    game_parser = subparsers.add_parser("game", help="Play against the models via Pygame GUI")
+    eval_parser = subparsers.add_parser("eval", help="Evaluate a model")
+    eval_parser.add_argument(
+        "--model", type=str, default="blundernet", help="Model to evaluate"
+    )
 
     args = parser.parse_args()
 
     if args.command == "train":
-        dataset = InfiniteDataset(use_saved=not args.generate_data)
-
-        if args.name == "null":
-            Model.train(dataset)
-        else:
-            Model.train(dataset, args.name)
-
-    elif args.command == "generate":
-        InfiniteDataset.generate(batch_size=args.batch_size, num_batches=args.num_files)
+        model = Model.load(args.name if args.name != "null" else None)
+        dataset = InfiniteDataset(model)
+        model.train(dataset)
 
     elif args.command == "lichess":
         model = args.model
@@ -66,4 +53,8 @@ if __name__ == "__main__":
         bot.run()
 
     elif args.command == "game":
+        from game import Game
         Game().run()
+        
+    elif args.command == "eval":
+        Evaluator().evaluate(Model.load(args.model))

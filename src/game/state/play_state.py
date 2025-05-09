@@ -51,13 +51,9 @@ class PlayState(GameState):
             is_promotion = False
             move = None
 
-            if self.board.piece_at(
-                from_sq
-            ).piece_type == chess.PAWN and chess.square_rank(to_sq) in (0, 7):
+            if self.board.piece_at(from_sq) and self.board.piece_at(from_sq).piece_type == chess.PAWN and chess.square_rank(to_sq) in (0, 7):
                 is_promotion = True
-                move = chess.Move(
-                    from_sq, to_sq, promotion=chess.QUEEN
-                )  # Temp to be a valid move
+                move = chess.Move(from_sq, to_sq, promotion=chess.QUEEN)  # Temp to be a valid move
             else:
                 move = chess.Move(from_sq, to_sq)
 
@@ -86,7 +82,7 @@ class PlayState(GameState):
                 and self.engine.time
                 and time.time() >= self.engine.time
             ):
-                move = self.engine.engine.make_move(self.board.board)
+                move = self.engine.engine.make_move(self.board.board, verbose=True)
                 self.audio_player.play(
                     "take" if self.board.is_capture(move) else "knock"
                 )

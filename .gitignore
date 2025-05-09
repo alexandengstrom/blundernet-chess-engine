@@ -3,6 +3,7 @@ models
 stockfish
 .lichess_token
 .token
+src/test.py
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

@@ -9,104 +9,48 @@ from tqdm import tqdm
 from utils import UCI_DICT
 
 from .stockfish import Stockfish
+from utils import Logger
 from .model import Model
+import chess
 
 
 class InfiniteDataset:
-    def __init__(self, batch_size=500):
-        self.batch_size = batch_size
-        self.saved_dataset_dir = "training_data/processed"
+    def __init__(self, model: Model):
+        self.model = model
 
     def __iter__(self):
-        return self._load_saved_data()
-
-    def _generate_data(self, search_depth, model):
-        games = []
         while True:
-            for filename in os.listdir("training_data/unprocessed"):
-                if not filename.endswith("pgn"):
-                    continue
-
-                path = os.path.join("training_data", "unprocessed", filename)
-                with open(path, "r", encoding="utf-8") as game_data:
+            files = os.listdir("training_data")
+            random.shuffle(files)
+            for filename in files:
+                with open(f"training_data/{filename}", "r") as data:
+                    x = []
+                    y = []
                     while True:
-                        game = pgn.read_game(game_data)
+                        game = pgn.read_game(data)
+
                         if game is None:
                             break
 
-                        if (
-                            random.randint(1, 100) > 95
-                        ):  # To get unique combinations of the data
-                            games.append(game)
+                        if random.randint(1, 10) < 8:
+                            continue
 
-                        if len(games) >= self.batch_size:
-                            batch = self._preprocess(games, search_depth, model)
-                            print(f"Generated {len(batch[0])} training samples")
-                            yield batch
-                            games = []
+                        board = game.board()
 
-    def _load_saved_data(self):
-        saved_files = sorted(
-            [f for f in os.listdir(self.saved_dataset_dir) if f.endswith(".npz")]
-        )
-        if not saved_files:
-            raise RuntimeError("No saved datasets found in training_data/processed")
+                        for i, move in enumerate(game.mainline_moves()):
+                            if i < 8 or random.randint(0, 20) > i or random.randint(1, 10) < 8:
+                                board.push(move)
+                                continue
 
-        while True:
-            random.shuffle(saved_files)
-            for file in saved_files:
-                path = os.path.join(self.saved_dataset_dir, file)
-                data = np.load(path)
-                print(f"Loaded dataset from {path}")
-                yield data["X"], data["y"]
+                            x.append(self.model.board_to_matrix(board))
+                            y.append(UCI_DICT[move.uci()])
 
-    def _preprocess(self, games, search_depth, model):
-        board_positions = []
-        gold_standard = []
-        stockfish = Stockfish()
+                            board.push(move)
 
-        for game in tqdm(games, desc="Building Next Dataset", unit="game"):
-            board = game.board()
-            for i, move in enumerate(game.mainline_moves()):
-                if (
-                    i < 5 and random.randint(-1, 5) > i
-                ):  # Dont use all opening moves, too much repetition
-                    board.push(move)
-                    continue
+                            if len(x) >= 100000:
+                                x_r = np.array(x)
+                                y_r = np.array(y)
+                                x.clear()
+                                y.clear()
 
-                board_positions.append(model.board_to_matrix(board))
-                best_move = stockfish.predict_best_move(board, depth=search_depth)
-                gold_standard.append(UCI_DICT[best_move.uci()])
-                board.push(move)
-
-        x = np.array(board_positions)
-        y = np.array(gold_standard)
-
-        return x, y
-
-    @staticmethod
-    def generate(
-        batch_size=500,
-        num_batches=100,
-        search_depth=5,
-        save_dir="training_data/processed",
-        model=Model # We need to access the board_to_matrix function specific fo a model when creating data
-    ):
-        """Generate and save datasets based on the _generate_data logic."""
-        dataset = InfiniteDataset(batch_size=batch_size)
-
-        try:
-            for _ in tqdm(range(num_batches), desc="Batches", unit="batch"):
-                data_batch = next(dataset._generate_data(search_depth, model))
-                x, y = data_batch
-                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                filename = f"dataset_{timestamp}.npz"
-                save_path = os.path.join(save_dir, filename)
-
-                os.makedirs(save_dir, exist_ok=True)
-                np.savez_compressed(save_path, X=x, y=y)
-                print(f"Saved dataset to {save_path}")
-                print("Press CTRL+C to stop the generation")
-                print()
-        except KeyboardInterrupt:
-            pass
+                                yield x_r, y_r

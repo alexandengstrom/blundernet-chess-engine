@@ -4,9 +4,9 @@ import numpy as np
 import chess
 
 import tensorflow as tf
-from tensorflow.keras import layers, models
+from tensorflow.keras import layers, models, regularizers
 
-from utils import UCI_DICT
+from utils import UCI_DICT, Logger
 from engine.live_plot import LivePlot
 
 
@@ -17,7 +17,7 @@ class Model:
 
     @staticmethod
     def _build_model(output_size):
-        inputs = layers.Input(shape=(8, 8, 17))
+        inputs = layers.Input(shape=(8, 8, 18))
 
         x = layers.Conv2D(128, kernel_size=3, padding="same", activation="relu")(inputs)
         x = layers.BatchNormalization()(x)
@@ -53,10 +53,11 @@ class Model:
 
         return model
 
+
     def evaluate(self, data, labels, batch_size=64):
         results = self.model.evaluate(data, labels, batch_size=batch_size, verbose=1)
         loss, accuracy = results[0], results[1]
-        print(f"Evaluation - Loss: {loss:.4f}, Accuracy: {accuracy:.4f}")
+        Logger.info(f"Evaluation - Loss: {loss:.4f}, Accuracy: {accuracy:.4f}")
         return loss, accuracy
     
     def predict(self, board: chess.Board):
@@ -65,19 +66,7 @@ class Model:
         prediction = self.model.predict(board_matrix, verbose=0)
         return prediction
 
-    @staticmethod
-    def train(dataset, model_name=None):
-        if model_name and os.path.exists(f"models/{model_name}.keras"):
-            model = models.load_model(f"models/{model_name}.keras")
-        elif not model_name:
-            model_name = datetime.now().strftime("model_%Y%m%d_%H%M%S")
-            print(f"No model name given, creating new model with name {model_name}")
-            model = Model._build_model(len(UCI_DICT))
-        else:
-            print(f"No model found named {model_name}, creating a new model...")
-            model = Model._build_model(len(UCI_DICT))
-
-        instance = Model(model, model_name)
+    def train(self, dataset):
         positions_processed = 0
         game_chunk = 1
         live_plot = LivePlot()
@@ -86,7 +75,7 @@ class Model:
             for board_positions, gold_standard in dataset:
 
                 if len(board_positions) == len(gold_standard):
-                    history = model.fit(
+                    history = self.model.fit(
                         board_positions, gold_standard, epochs=1, batch_size=64
                     )
                     if "accuracy" in history.history and "loss" in history.history:
@@ -95,22 +84,22 @@ class Model:
                         live_plot.update(acc, loss)
 
                     positions_processed += len(board_positions)
-                    instance.save(f"models/{model_name}.keras")
+                    self.model.save(f"models/{self.model.name}.keras")
 
-                    print(
+                    Logger.info(
                         f"\033[92m\nGame chunk {game_chunk} completed! Total position processed is {positions_processed}\033[0m"
                     )
-                    print(
+                    Logger.info(
                         "\033[33mPress CTRL+C to stop the training process, the model will be saved\n\033[0m"
                     )
                     game_chunk += 1
 
         except KeyboardInterrupt:
-            print("\033[92mModel saved!\033[0m")
+            Logger.info("\033[92mModel saved!\033[0m")
             
     @staticmethod
     def board_to_matrix(board: chess.Board):
-        matrix = np.zeros((8, 8, 17), dtype=np.float32)
+        matrix = np.zeros((8, 8, 18), dtype=np.float32)
 
         piece_map = board.piece_map()
         for square, piece in piece_map.items():
@@ -131,14 +120,26 @@ class Model:
             matrix[:, :, 15] = 1
         if board.has_queenside_castling_rights(chess.BLACK):
             matrix[:, :, 16] = 1
+            
+        move_count = board.fullmove_number / 200
+        matrix[:, :, 17] = move_count
 
         return matrix
 
     @staticmethod
-    def load(name):
-        print(name)
-        model = models.load_model(f"models/{name}.keras")
-        return Model(model, name)
+    def load(model_name):
+        model = None
+        if model_name and os.path.exists(f"models/{model_name}.keras"):
+            model = models.load_model(f"models/{model_name}.keras")
+        elif not model_name:
+            model_name = datetime.now().strftime("model_%Y%m%d_%H%M%S")
+            Logger.warning(f"No model name given, creating new model with name {model_name}")
+            model = Model._build_model(len(UCI_DICT))
+        else:
+            Logger.warning(f"No model found named {model_name}, creating a new model...")
+            model = Model._build_model(len(UCI_DICT))
+        
+        return Model(model, model_name)
 
     def fit(self, data, targets, epochs=10, batch_size=64):
         self.model.fit(data, targets, epochs=epochs, batch_size=batch_size)

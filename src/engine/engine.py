@@ -5,7 +5,7 @@ import numpy as np
 from chess import Board
 
 from engine.model import Model
-from utils import UCI_DICT
+from utils import UCI_DICT, Logger
 
 
 class Engine:
@@ -16,12 +16,6 @@ class Engine:
         self.name = model.name
 
     def make_move(self, board: Board, verbose=False):
-        # The idea is to make the one move the engine suggests if it has a clear winner
-        # If many moves have probabilities close to each other we randomize between those,
-        # but at most between the 5 top choices.
-        if board.turn == chess.WHITE and board.fullmove_number == 1:
-            return self.make_opening_move(board)
-
         available_moves = list(board.legal_moves)
         predicted_logits = self.model.predict(board)[0]
 
@@ -51,7 +45,7 @@ class Engine:
         chosen_move = random.choice([move for move, _ in selected_moves])
 
         if verbose:
-            print("Probabilities for most likely moves:")
+            Logger.info("Probabilities for top moves according to engine:")
             for move, prob in move_probabilities[:5]:
                 if move == chosen_move:
                     color = "\033[92m"
@@ -61,16 +55,6 @@ class Engine:
                 print(f"\t{color}{move}: {prob:.3f}{reset}")
 
         return chosen_move
-
-    def make_opening_move(self, board: Board):
-        opening_moves = ["e2e4", "d2d4", "g1f3", "c2c4", "f2f4", "e2e3", "g1h3", "b1c3"]
-
-        opening_move_uci = random.choice(opening_moves)
-        opening_move = chess.Move.from_uci(opening_move_uci)
-        if opening_move in board.legal_moves:
-            return opening_move
-
-        return random.choice(list(board.legal_moves))
 
 
 def softmax(x):
