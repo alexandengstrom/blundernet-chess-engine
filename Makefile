@@ -4,7 +4,7 @@ all:
 	bash scripts/install.sh
 
 dataset:
-	bash scripts/generate_dataset.sh
+	bash scripts/prepare_training.sh
 
 model:
 ifeq ($(strip $(NAME)),)
@@ -25,3 +25,6 @@ game:
 
 check:
 	bash scripts/validate_project.sh
+
+stockfish:
+	bash scripts/install_stockfish.sh

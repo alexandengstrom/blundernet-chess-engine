@@ -1,77 +1,53 @@
-import json
 import random
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
-from typing import Dict, Generator, List, Optional
+from typing import Dict, List, Optional
 
 import chess
-import requests
 
 from engine import Engine
 from utils import Logger
+from .api_client import ApiClient
+from .chat_handler import ChatHandler
 
 
 class LichessBot:
     def __init__(self, engine: Engine, token: str, max_games: int = 5) -> None:
+        self.api = ApiClient(token)
         self.engine: Engine = engine
-        self.token: str = token
+        self.chat: ChatHandler = ChatHandler()
         self.max_games: int = max_games
         self.active_games: set[str] = set()
         self.active_games_lock = threading.Lock()
         self.executor = ThreadPoolExecutor(max_workers=max_games)
-        self.headers = {
-            "Authorization": f"Bearer {token}",
-            "Accept": "application/x-ndjson",
-        }
         self.bot_id = self.get_id()
         threading.Thread(target=self.periodic_challenger, daemon=True).start()
 
     def get_id(self) -> str:
         try:
-            resp = requests.get("https://lichess.org/api/account", headers=self.headers, timeout=10)
-            resp.raise_for_status()
-            return resp.json()["id"]
-        except Exception as e:
-            print("Failed to get bot ID:", e)
+            resp = self.api.get_account()
+            return resp["id"]
+        except:
+            Logger.error("Failed to get bot ID:")
             raise
         
     def get_our_rating(self) -> int:
         try:
-            resp = requests.get("https://lichess.org/api/account", headers=self.headers, timeout=10)
-            resp.raise_for_status()
-            return resp.json()["perfs"]["bullet"]["rating"]
+            resp = self.api.get_account()
+            return resp["perfs"]["bullet"]["rating"]
         except Exception as e:
             print("Failed to get bot rating:", e)
             raise
 
-    def stream_events(self) -> Generator[Dict, None, None]:
-        url = "https://lichess.org/api/stream/event"
-        response = requests.get(url, headers=self.headers, stream=True, timeout=10)
-        for line in response.iter_lines():
-            if line:
-                yield json.loads(line)
-
-    def accept_challenge(self, challenge_id: str) -> None:
-        url = f"https://lichess.org/api/challenge/{challenge_id}/accept"
-        requests.post(url, headers=self.headers, timeout=10)
-
-    def stream_game(self, game_id: str) -> Generator[Dict, None, None]:
-        url = f"https://lichess.org/api/bot/game/stream/{game_id}"
-        response = requests.get(url, headers=self.headers, stream=True, timeout=10)
-        for line in response.iter_lines():
-            if line:
-                yield json.loads(line)
-
     def make_move(self, game_id: str, move: str) -> None:
-        url = f"https://lichess.org/api/bot/game/{game_id}/move/{move}"
-        response = requests.post(url, headers=self.headers, timeout=10)
+        response = self.api.make_move(game_id, move)
         if response.status_code != 200:
             print("Failed to make move:", response.text)
 
     def run(self) -> None:
         Logger.info("Listening for incoming challenges...")
-        for event in self.stream_events():
+        for event in self.api.stream_events():
             if event["type"] == "challenge":
                 if event["challenge"]["variant"]["key"] == "standard":
                     with self.active_games_lock:
@@ -79,7 +55,7 @@ class LichessBot:
                             Logger.info(
                                 f"Accepting challenge: {event['challenge']['id']}"
                             )
-                            self.accept_challenge(event["challenge"]["id"])
+                            self.api.accept_challenge(event["challenge"]["id"])
                         else:
                             Logger.warning(
                                 "Too many active games. Declining challenge."
@@ -109,7 +85,7 @@ class LichessBot:
         board = chess.Board()
         is_white = None
 
-        for event in self.stream_game(game_id):
+        for event in self.api.stream_game(game_id):
             event_type = event["type"]
 
             if event_type == "gameFull":
@@ -129,9 +105,11 @@ class LichessBot:
         is_white = event["white"]["id"] == self.bot_id
         Logger.info(f"[Game {game_id}] We are playing as {'white' if is_white else 'black'}!")
 
+        opponent = event["black"]["name"] if is_white else event["white"]["name"]
+
         self.send_chat(
             game_id,
-            "Hello, I am a bot that only predicts my moves using a neural network trained on a low-end laptop.",
+            self.chat.on_game_start(board, opponent),
         )
 
         if (is_white and board.turn == chess.WHITE) or (not is_white and board.turn == chess.BLACK):
@@ -158,6 +136,7 @@ class LichessBot:
 
     def handle_game_finish(self, is_white: Optional[bool], game_id: str, board: chess.Board) -> None:
         winner = None
+        Logger.info(f"Game {game_id} is finished!")
         
         result = board.result()
         
@@ -168,17 +147,17 @@ class LichessBot:
 
         if winner is None:
             Logger.info(f"[Game {game_id}] over: Draw.")
-            self.send_chat(game_id, "Thanks for playing!")
+            self.send_chat(game_id, self.chat.on_draw(board))
         elif (winner == "white" and is_white) or (winner == "black" and not is_white):
             Logger.info(f"[Game {game_id}] over: We won!")
-            self.send_chat(game_id, "Thanks for playing! Finally a win for me!")
+            self.send_chat(game_id, self.chat.on_win(board))
         else:
             Logger.info(f"[Game {game_id}] over: We lost.")
-            self.send_chat(game_id, "Thanks for playing! I had no change...")
+            self.send_chat(game_id, self.chat.on_loss(board))
 
 
     def challenge_other_bot(self) -> None:
-        opponents = self.find_opponents()
+        opponents = self.api.get_online_bots()
         
         if not opponents:
             Logger.warning("No opponents found.")
@@ -220,17 +199,7 @@ class LichessBot:
         Logger.info(f"Challenging bot: {username}")
         timelimit = random.choice([30, 45, 60])
 
-        url = f"https://lichess.org/api/challenge/{opponent_id}"
-        data = {
-            "clock.limit": timelimit,
-            "clock.increment": 0,
-            "rated": "true",
-            "color": "random",
-        }
-        headers = self.headers.copy()
-        headers["Content-Type"] = "application/x-www-form-urlencoded"
-
-        response = requests.post(url, headers=headers, data=data, timeout=10)
+        response = self.api.challenge(opponent_id, timelimit)
         if response.status_code == 200:
             Logger.info(f"Challenge sent to {username} with rating {opponent["perfs"]["bullet"]["rating"]}")
         else:
@@ -240,32 +209,14 @@ class LichessBot:
 
     def periodic_challenger(self) -> None:
         while True:
-            time.sleep(300)
             with self.active_games_lock:
                 if len(self.active_games) < self.max_games:
                     Logger.info("Attempting to challenge an opponent.")
                     self.challenge_other_bot()
                 else:
                     Logger.debug("Active games ongoing. Skipping challenge.")
-
-    def find_opponents(self, max_results: int = 200) -> Optional[List[Dict]]:
-        url = f"https://lichess.org/api/bot/online?nb={max_results}"
-        response = requests.get(url, headers=self.headers, stream=True, timeout=10)
-
-        if response.status_code != 200:
-            Logger.warning(f"Failed to fetch online bots: {response.status_code}")
-            return None
-
-        opponents = []
-        for line in response.iter_lines():
-            if line:
-                try:
-                    data = json.loads(line.decode("utf-8"))
-                    opponents.append(data)
-                except json.JSONDecodeError as e:
-                    Logger.warning(f"Failed to parse line: {e}")
-
-        return opponents
+                    
+            time.sleep(300)
 
     def respond(self, game_id: str, board: chess.Board, is_white: bool) -> None:
         if board.is_game_over():
@@ -277,11 +228,7 @@ class LichessBot:
         self.make_move(game_id, move)
 
     def send_chat(self, game_id: str, text: str, room: str = "player") -> None:
-        url = f"https://lichess.org/api/bot/game/{game_id}/chat"
-        data = {"room": room, "text": text}
-        headers = self.headers.copy()
-        headers["Content-Type"] = "application/x-www-form-urlencoded"
-        response = requests.post(url, headers=headers, data=data, timeout=10)
+        response = self.api.send_chat(game_id, text, room)
         if response.status_code != 200:
             Logger.warning(
                 f"Failed to send chat: {response.status_code} - {response.text}"
