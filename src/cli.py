@@ -32,7 +32,7 @@ if __name__ == "__main__":
     eval_parser.add_argument(
         "--model", type=str, default="blundernet", help="Model to evaluate"
     )
-
+    
     args = parser.parse_args()
 
     if args.command == "train":

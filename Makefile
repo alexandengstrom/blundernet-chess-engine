@@ -28,3 +28,9 @@ check:
 
 stockfish:
 	bash scripts/install_stockfish.sh
+
+eval:
+ifeq ($(strip $(MODEL)),)
+	$(error You must provide a model name: make eval NAME=my_model_name)
+endif
+	bash scripts/evaluate_model.sh $(MODEL)

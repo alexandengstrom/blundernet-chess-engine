@@ -71,14 +71,16 @@ Accuracy is measured as whether the move with the highest predicted probability 
 
 | Dataset     | Loss   | Accuracy |
 |-------------|--------|----------|
-| Openings    | 1.7100 | 0.4150   |
-| Middlegames | 2.0098 | 0.4199   |
-| Endgames    | 2.0132 | 0.4002   |
-| Random      | 2.0109 | 0.4450   |
-| Checkmates  | 1.6126 | 0.4604   |
-| Tactics     | 2.8455 | 0.2220   |
+| Openings    | 1.6343 | 0.4436   |
+| Middlegames | 1.8125 | 0.4543   |
+| Endgames    | 1.8337 | 0.4411   |
+| Random      | 1.7960 | 0.4850   |
+| Checkmates  | 1.0876 | 0.6129   |
+| Tactics     | 2.6589 | 0.2360   | 
 
-It would be easy to get higher accuracy on openings, since there aren't that many possible move combinations, but I've intentionally filtered out most opening moves from the dataset to avoid overfitting and to see if the model can still learn good openings on its own. Because we sample from real games, the dataset still includes a wide variety of openings, which adds some noise. Still, the model performs about the same on openings as it does on other positions. It's also interesting to see that it performs better on random positions than on middlegames and endgames, even though truly random positions are unlikely to occur often in the training data.
+It would be easy to get higher accuracy on openings, since there aren't that many possible move combinations, but I've intentionally filtered out most opening moves from the dataset to avoid overfitting and to see if the model can still learn good openings on its own. Because we sample from real games, the dataset still includes a wide variety of openings, which adds some noise. Still, the model performs as good on openings as it does on other positions. It's also interesting to see that it performs better on random positions than on middlegames and endgames, even though truly random positions are unlikely to occur often in the training data.
+
+The model does best on the checkmate dataset, which shows that it’s good at spotting direct mates. But it struggles on the tactics dataset, where the goal is to find stronger moves that win material or lead to checkmate later. This suggests the model is better at short-term threats than deeper tactical ideas that take a few moves to work, which kind of makes sense.
 ## Lichess
 When running the Lichess-bridge. We will start to listen for incoming requests but also challenge other bot accounts. By default we will allow five games to be played at the same time. When challenging other bots, we will try to find matches that are close to us in ranking. When receiving challenges we will accept everything.
 

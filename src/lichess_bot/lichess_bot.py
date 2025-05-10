@@ -22,6 +22,7 @@ class LichessBot:
         self.active_games_lock = threading.Lock()
         self.executor = ThreadPoolExecutor(max_workers=max_games)
         self.bot_id = self.get_id()
+        self.last_moves: Dict[str, Optional[str]] = {}
         threading.Thread(target=self.periodic_challenger, daemon=True).start()
 
     def get_id(self) -> str:
@@ -126,11 +127,17 @@ class LichessBot:
         moves = event["moves"].split()
         board.clear_stack()
         board.reset()
+    
 
         for move in moves:
             board.push_uci(move)
+            
+        last_move = moves[-1] if moves else None
+        if self.last_moves.get(game_id) == last_move:
+            return
 
         if (is_white and board.turn == chess.WHITE) or (not is_white and board.turn == chess.BLACK):
+            self.last_moves[game_id] = last_move
             self.respond(game_id, board, is_white)
 
 
