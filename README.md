@@ -48,7 +48,7 @@ The training data is generated on the fly by using data from real chess games. W
 The `Model` class provides a predict method that takes a `chess.Board` object and returns raw scores (logits) for all possible moves in UCI format. The `Engine` class interprets the model's predictions to select a move:
 1. **Filter Legal Moves**: From the model's predicted logits (one for each possible UCI move), we extract only those corresponding to currently legal moves on the board.
 2. **Renormalize Probabilities**: The model's output is logits over all possible moves — including illegal ones — the remaining values does not form a proper probability distribution. We apply softmax to the logits for only the legal moves to get a valid distribution.
-3. **Select Top Candidates**: We find the legal move with the highest probability, then keep all other legal moves within 10% probability of that top probability. This gives a shortlist of high-confidence options, typically up to 5 moves.
+3. **Select Top Candidates**: We find the legal move with the highest probability, then keep all other legal moves whose probabilities are within a narrow margin of that top probability. This span starts at 0.10 on move 1 and decreases linearly to 0.01 by move 20. This produces a shortlist of high-confidence moves (up to 5), from which we randomly select one early in the game. After move 20, the span is fixed at 0.01, causing the engine to consistently choose the top-rated move unless other moves are nearly tied.
 4. **Choose Final Move**: We randomly select one move from the top shortlist. In many cases there will only be one option if the model has a clear favorite.
 
 This method is used so we always chooses a legal move, play the most confident move when one clearly stands out and introduces some randomness when multiple moves are similarly good.
@@ -69,14 +69,46 @@ Dataset Descriptions
 
 Accuracy is measured as whether the move with the highest predicted probability matches the move suggested by Stockfish at a search depth of 10. It's important to note that we have not filtered for only legal moves — the model outputs logits for all possible moves in UCI format. A prediction is not counted as correct in this evaluation, even if the legal move with the highest logit was correct, if there was an illegal move with a higher logit.
 
+Blundernet
 | Dataset     | Loss   | Accuracy |
 |-------------|--------|----------|
-| Openings    | 1.6343 | 0.4436   |
-| Middlegames | 1.8125 | 0.4543   |
-| Endgames    | 1.8337 | 0.4411   |
-| Random      | 1.7960 | 0.4850   |
-| Checkmates  | 1.0876 | 0.6129   |
-| Tactics     | 2.6589 | 0.2360   | 
+| Openings    | 1.5276 | 0.4760   |
+| Middlegames | 1.7430 | 0.4716   |
+| Endgames    | 1.8058 | 0.4548   |
+| Random      | 1.7078 | 0.5020   |
+| Checkmates  | 0.9011 | 0.6628   |
+| Tactics     | 2.5275 | 0.2700   |
+
+
+Blundetnet1
+Dataset      Loss    Accuracy
+-----------------------------
+Openings     1.5093  0.4452  
+Middlegames  1.7352  0.4644  
+Endgames     1.7907  0.4544  
+Random       1.6884  0.5042  
+Checkmates   0.9694  0.6716  
+Tactics      2.5147  0.2660  
+
+Blundernet2
+Dataset      Loss    Accuracy
+-----------------------------
+Openings     1.5760  0.4344  
+Middlegames  1.7286  0.4660  
+Endgames     1.7977  0.4448  
+Random       1.7036  0.5026  
+Checkmates   0.9719  0.6452  
+Tactics      2.5169  0.2660
+
+Blundetnet3
+Dataset      Loss    Accuracy
+-----------------------------
+Openings     1.5591  0.4254  
+Middlegames  1.7069  0.4701  
+Endgames     1.7797  0.4488  
+Random       1.6548  0.5110  
+Checkmates   0.8806  0.6716  
+Tactics      2.4860  0.2670 
 
 It would be easy to get higher accuracy on openings, since there aren't that many possible move combinations, but I've intentionally filtered out most opening moves from the dataset to avoid overfitting and to see if the model can still learn good openings on its own. Because we sample from real games, the dataset still includes a wide variety of openings, which adds some noise. Still, the model performs as good on openings as it does on other positions. It's also interesting to see that it performs better on random positions than on middlegames and endgames, even though truly random positions are unlikely to occur often in the training data.
 

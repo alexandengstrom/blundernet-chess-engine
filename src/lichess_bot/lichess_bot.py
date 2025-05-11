@@ -3,6 +3,7 @@ import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
 from typing import Dict, List, Optional
+import traceback
 
 import chess
 
@@ -24,6 +25,37 @@ class LichessBot:
         self.bot_id = self.get_id()
         self.last_moves: Dict[str, Optional[str]] = {}
         threading.Thread(target=self.periodic_challenger, daemon=True).start()
+        
+    def stats(self):
+        info = self.api.get_account()
+
+        matches_played = info["count"]["all"]
+        wins = info["count"]["win"]
+        draws = info["count"]["draw"]
+        losses = info["count"]["loss"]
+
+        win_pct = (wins / matches_played) * 100 if matches_played else 0
+        draw_pct = (draws / matches_played) * 100 if matches_played else 0
+        loss_pct = (losses / matches_played) * 100 if matches_played else 0
+
+        bullet_rating = info["perfs"].get("bullet", {}).get("rating", "N/A")
+        blitz_rating = info["perfs"].get("blitz", {}).get("rating", "N/A")
+        rapid_rating = info["perfs"].get("rapid", {}).get("rating", "N/A")
+
+        username = info["username"]
+
+        print(f"\nStats for {username}")
+        print("=" * 30)
+        print(f"Total games played : {matches_played}")
+        print(f"  Wins             : {wins} ({win_pct:.2f}%)")
+        print(f"  Draws            : {draws} ({draw_pct:.2f}%)")
+        print(f"  Losses           : {losses} ({loss_pct:.2f}%)")
+        print("-" * 30)
+        print(f"Bullet rating      : {bullet_rating}")
+        print(f"Blitz rating       : {blitz_rating}")
+        print(f"Rapid rating       : {rapid_rating}")
+        print("=" * 30)
+        
 
     def get_id(self) -> str:
         try:
@@ -50,7 +82,11 @@ class LichessBot:
         Logger.info("Listening for incoming challenges...")
         for event in self.api.stream_events():
             if event["type"] == "challenge":
-                if event["challenge"]["variant"]["key"] == "standard":
+                challenge = event["challenge"]
+                if (
+                    challenge["variant"]["key"] == "standard" and
+                    challenge["challenger"]["id"].lower() != self.bot_id.lower()
+                ):
                     with self.active_games_lock:
                         if len(self.active_games) < self.max_games:
                             Logger.info(
@@ -61,6 +97,8 @@ class LichessBot:
                             Logger.warning(
                                 "Too many active games. Declining challenge."
                             )
+            elif event["type"] == "challengeDeclined":
+                Logger.info(f"Challenge was declined by {challenge["destUser"]["id"]}.")
             elif event["type"] == "gameStart":
                 game_id = event["game"]["id"]
                 with self.active_games_lock:
@@ -72,12 +110,32 @@ class LichessBot:
                         Logger.info(
                             f"Max concurrent games reached. Ignoring game {game_id}"
                         )
+            elif event["type"] == "gameFinish":
+                print(event)
+                game = event["game"]
+                game_id = game["id"]
+                status = game.get("status", {}).get("name", "unknown").lower()
+                opponent_id = game.get("opponent", {}).get("id", "Unknown")
+
+                if status == "draw":
+                    result = "Game was a draw."
+                elif status in ("mate", "resign", "timeout", "outoftime"):
+                    is_my_turn = game.get("isMyTurn", False)
+                    if is_my_turn:
+                        result = "You won!"
+                    else:
+                        result = "You lost."
+                else:
+                    result = f"Game ended with status: {status}."
+
+                Logger.info(f"Game finished: {game_id} against {opponent_id}. {result}")
 
     def play_game_wrapper(self, game_id: str) -> None:
         try:
             self.play_game(game_id)
-        except:
-            Logger.error(f"Game {game_id} crashed")
+        except Exception as e:
+            error_message = f"Game {game_id} crashed. Exception: {str(e)}\n{traceback.format_exc()}"
+            Logger.error(error_message)
         finally:
             with self.active_games_lock:
                 self.active_games.discard(game_id)
@@ -143,7 +201,6 @@ class LichessBot:
 
     def handle_game_finish(self, is_white: Optional[bool], game_id: str, board: chess.Board) -> None:
         winner = None
-        Logger.info(f"Game {game_id} is finished!")
         
         result = board.result()
         
@@ -153,13 +210,10 @@ class LichessBot:
             winner = "black"
 
         if winner is None:
-            Logger.info(f"[Game {game_id}] over: Draw.")
             self.send_chat(game_id, self.chat.on_draw(board))
         elif (winner == "white" and is_white) or (winner == "black" and not is_white):
-            Logger.info(f"[Game {game_id}] over: We won!")
             self.send_chat(game_id, self.chat.on_win(board))
         else:
-            Logger.info(f"[Game {game_id}] over: We lost.")
             self.send_chat(game_id, self.chat.on_loss(board))
 
 
@@ -197,18 +251,17 @@ class LichessBot:
             key=lambda bot: abs(bot["perfs"]["bullet"]["rating"] - our_rating)
         )
 
-        num_to_keep = max(1, len(opponents_with_rating) // 10)
+        num_to_keep = max(1, len(opponents_with_rating) // 5)
         closest_opponents = opponents_with_rating[:num_to_keep]
 
         opponent = random.choice(closest_opponents)
         opponent_id = opponent["id"]
         username = opponent["username"]
-        Logger.info(f"Challenging bot: {username}")
-        timelimit = random.choice([30, 45, 60])
+        timelimit = random.choice([60])
 
         response = self.api.challenge(opponent_id, timelimit)
         if response.status_code == 200:
-            Logger.info(f"Challenge sent to {username} with rating {opponent["perfs"]["bullet"]["rating"]}")
+            Logger.info(f"Challenge sent to {username} with rating {opponent["perfs"]["bullet"]["rating"]} for a {timelimit}s game.")
         else:
             Logger.warning(
                 f"Failed to challenge {opponent_id}: {response.status_code} - {response.text}"
