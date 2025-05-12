@@ -80,6 +80,7 @@ class LichessBot:
     def run(self) -> None:
         threading.Thread(target=self.periodic_challenger, daemon=True).start()
         Logger.info("Listening for incoming challenges...")
+        
         for event in self.api.stream_events():
             if event["type"] == "challenge":
                 challenge = event["challenge"]
@@ -107,28 +108,27 @@ class LichessBot:
                         Logger.info(f"Game started: {game_id}")
                         self.executor.submit(self.play_game_wrapper, game_id)
                     else:
-                        Logger.info(
+                        Logger.warning(
                             f"Max concurrent games reached. Ignoring game {game_id}"
                         )
             elif event["type"] == "gameFinish":
-                print(event)
                 game = event["game"]
+                board = chess.Board(game["fen"])
+                our_color = game["color"]
                 game_id = game["id"]
                 status = game.get("status", {}).get("name", "unknown").lower()
                 opponent_id = game.get("opponent", {}).get("id", "Unknown")
+                result = board.result()
 
-                if status == "draw":
-                    result = "Game was a draw."
-                elif status in ("mate", "resign", "timeout", "outoftime"):
-                    is_my_turn = game.get("isMyTurn", False)
-                    if is_my_turn:
-                        result = "You won!"
-                    else:
-                        result = "You lost."
+                if (result == "1-0" and our_color == "white") or (result == "0-1" and our_color == "black"):
+                    Logger.info(f"\033[92mWe won the game {game_id} against {opponent_id}, status: {status}!\033[0m")
+
+                elif (result == "1-0" and our_color == "black") or (result == "0-1" and our_color == "white"):
+                    Logger.info(f"\033[91mWe lost the game {game_id} against {opponent_id}, status: {status}.\033[0m")
+                elif status == "aborted":
+                    Logger.info(f"Game {game_id} vs {opponent_id} was aborted.")
                 else:
-                    result = f"Game ended with status: {status}."
-
-                Logger.info(f"Game finished: {game_id} against {opponent_id}. {result}")
+                    Logger.info(f"Game {game_id} vs {opponent_id} ended with status {status}")
 
     def play_game_wrapper(self, game_id: str) -> None:
         try:
