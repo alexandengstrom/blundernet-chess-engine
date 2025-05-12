@@ -24,7 +24,6 @@ class LichessBot:
         self.executor = ThreadPoolExecutor(max_workers=max_games)
         self.bot_id = self.get_id()
         self.last_moves: Dict[str, Optional[str]] = {}
-        threading.Thread(target=self.periodic_challenger, daemon=True).start()
         
     def stats(self):
         info = self.api.get_account()
@@ -79,6 +78,7 @@ class LichessBot:
             print("Failed to make move:", response.text)
 
     def run(self) -> None:
+        threading.Thread(target=self.periodic_challenger, daemon=True).start()
         Logger.info("Listening for incoming challenges...")
         for event in self.api.stream_events():
             if event["type"] == "challenge":

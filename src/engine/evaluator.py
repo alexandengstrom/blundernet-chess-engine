@@ -44,7 +44,8 @@ class Evaluator:
     
     @staticmethod
     def run_test(model: Model, dataset: str):
-        data = np.load(f"tests/evaluation/{dataset}", allow_pickle=True)
+        path = os.path.join("tests", "evaluation", dataset)
+        data = np.load(path, allow_pickle=True)
 
                 
         loss, accuracy = model.evaluate(data["X"], data["y"], batch_size=64)
@@ -75,7 +76,7 @@ class Evaluator:
         openings_x, openings_y = Evaluator.create_set(
             games, num_tests, stockfish, max_turn=10, min_turn=0, max_pieces=32, min_pieces=26
         )
-        np.savez_compressed(os.path.join("tests/evaluation", "openings.npz"), X=openings_x, y=openings_y)
+        np.savez_compressed(os.path.join("tests", "evaluation", "openings.npz"), X=openings_x, y=openings_y)
         
         openings_x.clear()
         openings_y.clear()
@@ -85,7 +86,7 @@ class Evaluator:
             games, num_tests, stockfish, max_turn=40, min_turn=15, max_pieces=25, min_pieces=15
         )
         
-        np.savez_compressed(os.path.join("tests/evaluation", "middlegames.npz"), X=middlegames_x, y=middlegames_y)
+        np.savez_compressed(os.path.join("tests", "evaluation", "middlegames.npz"), X=middlegames_x, y=middlegames_y)
         
         middlegames_x.clear()
         middlegames_y.clear()
@@ -95,20 +96,20 @@ class Evaluator:
             games, num_tests, stockfish, max_turn=100, min_turn=30, max_pieces=14, min_pieces=2
         )
 
-        np.savez_compressed(os.path.join("tests/evaluation", "endgames.npz"), X=endgames_x, y=endgames_y)
+        np.savez_compressed(os.path.join("tests", "evaluation", "endgames.npz"), X=endgames_x, y=endgames_y)
         endgames_x.clear()
         endgames_y.clear()
         
         checkmates_x, checkmates_y = Evaluator.create_checkmate_set(games, num_tests, stockfish)
-        np.savez_compressed(os.path.join("tests/evaluation", "checkmates.npz"), X=checkmates_x, y=checkmates_y)
+        np.savez_compressed(os.path.join("tests", "evaluation", "checkmates.npz"), X=checkmates_x, y=checkmates_y)
         checkmates_x.clear()
         checkmates_y.clear()
         
         random_x, random_y = Evaluator.create_random_set(num_tests, stockfish)
-        np.savez_compressed(os.path.join("tests/evaluation", "random.npz"), X=random_x, y=random_y)
+        np.savez_compressed(os.path.join("tests", "evaluation", "random.npz"), X=random_x, y=random_y)
         
         tactics_x, tactics_y = Evaluator.create_puzzle_set("tests/evaluation/puzzles.csv", ["fork", "pin", "discoveredAttack"], 1000, stockfish)
-        np.savez_compressed("tests/evaluation/tactics.npz", X=tactics_x, y=tactics_y)
+        np.savez_compressed(os.path.join("tests", "evaluation", "tactics.npz"), X=tactics_x, y=tactics_y)
         
         stockfish.close()       
         

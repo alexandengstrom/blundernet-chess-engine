@@ -6,11 +6,11 @@ I've tried to structure the repo so it's easy to train your own models. It inclu
 
 
 ## Features:
-- **Neural Network Driven**: Every move the engine makes is determined entirely by the neural network’s output, with no traditional chess algorithms involved.
-- **Model Training**: The repository is designed for easy training of new models, so you can experiment with different architectures and training data.
-- **Pygame GUI**: A simple GUI using Pygame is included which allows you to play against your models in a local environment.
-- **Lichess Bridge**: With the Lichess integration, you can pit your models against real opponents online by letting them play on Lichess.
-- **Evaluation Set**: The evaluation test set i have used is included in the repo, so you can compare your own models to my model as long as you are using the same board matrix representation.
+- **Neural Network Only**: No search tree — all decisions are made directly from the model’s output.
+- **Train Your Own Models**: Easily train custom models from real game data.
+- **Pygame GUI**: Play against your engine locally.
+- **Lichess Integration**: Let your model play online games via the Lichess API.
+- **Evaluation Tools**: Includes a test suite to benchmark models across game phases and tactics.
 ## Installation:
 To get started with the project, first clone the repo:
 ```bash
@@ -34,11 +34,16 @@ Interact with the project using `make`. These are the commands available:
 - `make stockfish`: Setups the use of the Stockfish class, only necessary if you want to create your own evaluation data. Also this script is currently platform specific.
 - `make check`: Mostly for development, but runs linting and typechecking for the project.
 
+For more options and flexability you can use the CLI exposed via `src/cli.py` since `make` is just a wrapper for this file.
+```bash
+python3 src/cli.py --help
+```
+
 ## Engine
 
 ### Architecture
 
-This model is a convolutional neural network designed to process an 8×8×18 representation of a chess board. It begins with a convolution and batch normalization layer, followed by 10 residual blocks that each apply two convolutional layers with skip connections to preserve features. After the residual stack, a squeeze-and-excitation block rescales channel-wise features and then the output is passed through a 1×1 convolution, flattened, and fed into two dense layers to produce logits for all possible moves.
+This model is a convolutional neural network designed to process an 8×8×18 representation of a chess board. It begins with a convolution and batch normalization layer, followed by 10 residual blocks that each apply two convolutional layers with skip connections. After the residual stack, a squeeze-and-excitation block rescales channel-wise features and then the output is passed through a 1×1 convolution, flattened, and fed into two dense layers to produce logits for all possible moves.
 
 
 ### Dataset
@@ -53,11 +58,8 @@ The `Model` class provides a predict method that takes a `chess.Board` object an
 
 This method is used so we always chooses a legal move, play the most confident move when one clearly stands out and introduces some randomness when multiple moves are similarly good.
 
-If it's the first move of the game as white, the engine plays a random opening from a predefined list.
-
 ### Evaluation
 To evaluate how well the model performs, I have created some datasets that tests different aspects of playing chess. These are the datasets:
-Dataset Descriptions
 
 - **Openings**: Positions extracted from early game stages (turns 0–10) with nearly full material on the board (26–32 pieces). Represents common opening scenarios.
 - **Middlegames**: Positions from the middle of games (turns 15–40), with moderate material left (15–25 pieces).
@@ -69,7 +71,6 @@ Dataset Descriptions
 
 Accuracy is measured as whether the move with the highest predicted probability matches the move suggested by Stockfish at a search depth of 10. It's important to note that we have not filtered for only legal moves — the model outputs logits for all possible moves in UCI format. A prediction is not counted as correct in this evaluation, even if the legal move with the highest logit was correct, if there was an illegal move with a higher logit.
 
-Blundernet3
 | Dataset     | Loss   | Accuracy |
 |-------------|--------|----------|
 | Openings    | 1.5276 | 0.4760   |
@@ -87,13 +88,13 @@ When running the Lichess-bridge. We will start to listen for incoming requests b
 
 ## Final Thoughts
 
-This was my first programming project using TensorFlow. I didn't know much about the framework, nor was I very familiar with which architectures to use. For this project, I experimented with different architectures based on my understanding of the sources linked below, and I also tried various ways of formatting the dataset.
+This was my first programming project using TensorFlow. I didn't know much about the framework, nor was I very familiar with which architectures to use. I experimented with different architectures based on my understanding of the sources linked below, and I also tried various ways of formatting the dataset.
 
 Currently, the `y-labels` are one-hot encoded, but that wasn't my initial plan. My original idea was to create a "gold standard" by letting **Stockfish** evaluate the top 10 moves and then convert those evaluations into a probability distribution. However, I couldn't get this approach to work—every time I tried, the training collapsed and the model ended up predicting uniform probabilities for all moves. I likely did something wrong, but as I'm not an expert in this field, I'm not sure what the issue was.
 
 That said, I didn’t encounter this problem when using one-hot encoding. I also observed better results when using the actual moves played in sample games as the `y-labels`, rather than relying on Stockfish's predictions, even if the evaluation set relies on Stockfish predictions. This approach is also much faster and allows us to generate datasets on the fly.
 
-After playing around 500 games on Lichess, the engine has a bullet-rating of 1700 which is far better than i expected.
+After playing around 500 games on Lichess, the engine has a bullet-rating of 1700 which is far better than i expected and i would count that as a success for this project!
 ## Sources
 - http://vision.stanford.edu/teaching/cs231n/reports/2015/pdfs/ConvChess.pdf
 - https://www.chessprogramming.org/AlphaZero

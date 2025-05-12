@@ -66,17 +66,18 @@ class Model:
         prediction = self.model.predict(board_matrix, verbose=0)
         return prediction
 
-    def train(self, dataset):
+    def train(self, dataset, batch_size: int):
         positions_processed = 0
         game_chunk = 1
         live_plot = LivePlot()
+        model_path = os.path.join("models", f"{self.model.name}.keras")
 
         try:
             for board_positions, gold_standard in dataset:
 
                 if len(board_positions) == len(gold_standard):
                     history = self.model.fit(
-                        board_positions, gold_standard, epochs=1, batch_size=64
+                        board_positions, gold_standard, epochs=1, batch_size=batch_size
                     )
                     if "accuracy" in history.history and "loss" in history.history:
                         acc = history.history["accuracy"][-1]
@@ -84,7 +85,7 @@ class Model:
                         live_plot.update(acc, loss)
 
                     positions_processed += len(board_positions)
-                    self.model.save(f"models/{self.model.name}.keras")
+                    self.model.save(model_path)
 
                     Logger.info(
                         f"\033[92m\nGame chunk {game_chunk} completed! Total position processed is {positions_processed}\033[0m"
@@ -129,8 +130,10 @@ class Model:
     @staticmethod
     def load(model_name):
         model = None
-        if model_name and os.path.exists(f"models/{model_name}.keras"):
-            model = models.load_model(f"models/{model_name}.keras")
+        model_path = os.path.join("models", f"{model_name}.keras") if model_name else None
+        
+        if model_name and os.path.exists(model_path):
+            model = models.load_model(model_path)
         elif not model_name:
             model_name = datetime.now().strftime("model_%Y%m%d_%H%M%S")
             Logger.warning(f"No model name given, creating new model with name {model_name}")
