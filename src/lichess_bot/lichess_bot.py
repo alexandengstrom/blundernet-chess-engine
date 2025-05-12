@@ -122,13 +122,15 @@ class LichessBot:
 
                 if (result == "1-0" and our_color == "white") or (result == "0-1" and our_color == "black"):
                     Logger.info(f"\033[92mWe won the game {game_id} against {opponent_id}, status: {status}!\033[0m")
-
+                    self.send_chat(game_id, self.chat.on_win(board))
                 elif (result == "1-0" and our_color == "black") or (result == "0-1" and our_color == "white"):
                     Logger.info(f"\033[91mWe lost the game {game_id} against {opponent_id}, status: {status}.\033[0m")
+                    self.send_chat(game_id, self.chat.on_loss(board))
                 elif status == "aborted":
                     Logger.info(f"Game {game_id} vs {opponent_id} was aborted.")
                 else:
                     Logger.info(f"Game {game_id} vs {opponent_id} ended with status {status}")
+                    self.send_chat(game_id, self.chat.on_draw(board))
 
     def play_game_wrapper(self, game_id: str) -> None:
         try:
@@ -198,25 +200,6 @@ class LichessBot:
             self.last_moves[game_id] = last_move
             self.respond(game_id, board, is_white)
 
-
-    def handle_game_finish(self, is_white: Optional[bool], game_id: str, board: chess.Board) -> None:
-        winner = None
-        
-        result = board.result()
-        
-        if result == "1-0":
-            winner = "white"
-        elif result == "0-1":
-            winner = "black"
-
-        if winner is None:
-            self.send_chat(game_id, self.chat.on_draw(board))
-        elif (winner == "white" and is_white) or (winner == "black" and not is_white):
-            self.send_chat(game_id, self.chat.on_win(board))
-        else:
-            self.send_chat(game_id, self.chat.on_loss(board))
-
-
     def challenge_other_bot(self) -> None:
         opponents = self.api.get_online_bots()
         
@@ -280,7 +263,6 @@ class LichessBot:
 
     def respond(self, game_id: str, board: chess.Board, is_white: bool) -> None:
         if board.is_game_over():
-            self.handle_game_finish(is_white, game_id, board)
             return
 
         move = self.engine.make_move(board)
