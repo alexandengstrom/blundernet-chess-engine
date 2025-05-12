@@ -26,6 +26,9 @@ if __name__ == "__main__":
     lichess_parser.add_argument(
         "--model", type=str, default="blundernet", help="Model to run in the engine"
     )
+    lichess_parser.add_argument(
+    "--stats", action="store_true", help="Show account statistics and exit"
+    )
 
     game_parser = subparsers.add_parser("game", help="Play against the models via Pygame GUI")
     eval_parser = subparsers.add_parser("eval", help="Evaluate a model")
@@ -49,8 +52,12 @@ if __name__ == "__main__":
         with open(".token", "r", encoding="utf-8") as data:
             token = data.read().strip()
 
+        
         bot = LichessBot(engine, token)
-        bot.run()
+        if args.stats:
+            bot.stats()
+        else:
+            bot.run()
 
     elif args.command == "game":
         from game import Game

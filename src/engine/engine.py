@@ -35,9 +35,14 @@ class Engine:
         move_probabilities.sort(key=lambda x: x[1], reverse=True)
 
         _, top_prob = move_probabilities[0]
+        
+        # This is so we add more variation into the game the first 20 moves
+        move_count = board.fullmove_number
+        span = (11 - move_count) / 100 if move_count < 10 else 0.01
+        
 
         threshold_moves = [
-            (move, prob) for move, prob in move_probabilities if top_prob - prob <= 0.10
+            (move, prob) for move, prob in move_probabilities if top_prob - prob <= span
         ]
 
         selected_moves = threshold_moves[:5]

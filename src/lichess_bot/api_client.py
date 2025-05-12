@@ -25,7 +25,7 @@ class ApiClient:
 
     def _wait_if_blocked(self) -> None:
         while time.time() < self.block_until:
-            time.sleep(1)
+            time.sleep(60)
 
     def _get(self, endpoint: str, stream: bool = False) -> requests.Response:
         self._wait_if_blocked()
