@@ -69,7 +69,7 @@ Dataset Descriptions
 
 Accuracy is measured as whether the move with the highest predicted probability matches the move suggested by Stockfish at a search depth of 10. It's important to note that we have not filtered for only legal moves — the model outputs logits for all possible moves in UCI format. A prediction is not counted as correct in this evaluation, even if the legal move with the highest logit was correct, if there was an illegal move with a higher logit.
 
-Blundernet
+Blundernet3
 | Dataset     | Loss   | Accuracy |
 |-------------|--------|----------|
 | Openings    | 1.5276 | 0.4760   |
@@ -78,37 +78,6 @@ Blundernet
 | Random      | 1.7078 | 0.5020   |
 | Checkmates  | 0.9011 | 0.6628   |
 | Tactics     | 2.5275 | 0.2700   |
-
-
-Blundetnet1
-Dataset      Loss    Accuracy
------------------------------
-Openings     1.5093  0.4452  
-Middlegames  1.7352  0.4644  
-Endgames     1.7907  0.4544  
-Random       1.6884  0.5042  
-Checkmates   0.9694  0.6716  
-Tactics      2.5147  0.2660  
-
-Blundernet2
-Dataset      Loss    Accuracy
------------------------------
-Openings     1.5760  0.4344  
-Middlegames  1.7286  0.4660  
-Endgames     1.7977  0.4448  
-Random       1.7036  0.5026  
-Checkmates   0.9719  0.6452  
-Tactics      2.5169  0.2660
-
-Blundetnet3
-Dataset      Loss    Accuracy
------------------------------
-Openings     1.5591  0.4254  
-Middlegames  1.7069  0.4701  
-Endgames     1.7797  0.4488  
-Random       1.6548  0.5110  
-Checkmates   0.8806  0.6716  
-Tactics      2.4860  0.2670 
 
 It would be easy to get higher accuracy on openings, since there aren't that many possible move combinations, but I've intentionally filtered out most opening moves from the dataset to avoid overfitting and to see if the model can still learn good openings on its own. Because we sample from real games, the dataset still includes a wide variety of openings, which adds some noise. Still, the model performs as good on openings as it does on other positions. It's also interesting to see that it performs better on random positions than on middlegames and endgames, even though truly random positions are unlikely to occur often in the training data.
 
@@ -124,9 +93,7 @@ Currently, the `y-labels` are one-hot encoded, but that wasn't my initial plan. 
 
 That said, I didn’t encounter this problem when using one-hot encoding. I also observed better results when using the actual moves played in sample games as the `y-labels`, rather than relying on Stockfish's predictions, even if the evaluation set relies on Stockfish predictions. This approach is also much faster and allows us to generate datasets on the fly.
 
-On paper, the evaluation metrics look promising—random guessing would yield only about 0.02% accuracy. So how does it feel to play against this model? I'd say it performs decently on most moves, but occasionally makes huge blunders. Because of this, it doesn’t stand a chance against engines that use minimax search, especially when playing other bots on Lichess. Just one major mistake is enough to lose a game. So for now, I'm not sure if the model has any practical use, but it was a fun project and I learned a lot.
-
-
+After playing around 500 games on Lichess, the engine has a bullet-rating of 1700 which is far better than i expected.
 ## Sources
 - http://vision.stanford.edu/teaching/cs231n/reports/2015/pdfs/ConvChess.pdf
 - https://www.chessprogramming.org/AlphaZero
